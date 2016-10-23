@@ -1,0 +1,9 @@
+*.sqlite3
+*.db
+*.pyc
+*~
+env
+google_api_credentials.json
+
+# Accept these files in the repository
+!.gitignore
