@@ -77,7 +77,9 @@ class TemporalPredictor(models.Model):
                                choices=TEMPORAL_PREDICTOR_FORMULAS)
     developer = models.ForeignKey('Developer', blank=False, null=False)
     statistic = models.FloatField(blank=False, null=False)
-    period = models.DateTimeField(blank=False, null=False)
+    year = models.IntegerField(blank=False, null=False)
+    month = models.IntegerField(blank=False, null=False)
 
     def __unicode__(self):
-        return '{}_{}_{}'.format(self.reference, self.formula, self.period)
+        return '{}_{}_{}-()'.format(self.reference, self.formula,
+                                    self.year, self.month)

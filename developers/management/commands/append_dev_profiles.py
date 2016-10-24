@@ -1,11 +1,11 @@
-# import datetime
 # from pydash import py_
 # import pprint as pp
-# import time
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from developers.models import Developer
 from django.core.exceptions import ObjectDoesNotExist
+
+from rate_limiting import pause_if_rate_limit_reached
 
 import requests
 
@@ -29,11 +29,16 @@ class Command(BaseCommand):
         parser.add_argument('gh_id_min', nargs='+')
 
     def get_dev_profile(self, login):
-        # TODO: add pause before rate-limiting
 
         url = '{}/{}?{}'.format(self.domain, login, self.query)
-        r = requests.get(url).json()
+        response = requests.get(url)
 
+        pause_if_rate_limit_reached(
+            response.headers['X-RateLimit-Remaining'],
+            response.headers['X-RateLimit-Reset']
+        )
+
+        r = response.json()
         try:
             dev = Developer.objects.get(login=r['login'])
             dev.name = r['name']
@@ -47,8 +52,8 @@ class Command(BaseCommand):
             dev.public_gists = r['public_gists']
             dev.followers = r['followers']
             dev.following = r['following']
-            dev.github_created_at = r['created_at']
-            dev.github_updated_at = r['created_at']
+            dev.gh_created_at = r['created_at']
+            dev.gh_updated_at = r['updated_at']
             dev.save()
 
         except ObjectDoesNotExist:

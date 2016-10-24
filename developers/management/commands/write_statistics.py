@@ -1,66 +1,73 @@
-# import datetime
-# from pydash import py_
-# import pprint as pp
-# import time
-from django.conf import settings
 from django.core.management.base import BaseCommand
-from developers.models import Developer
-from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Max, Min
 
-import requests
+from developers.models import Event
+from developers.models import Developer
+from developers.models import TemporalPredictor
+from developers.models import TEMPORAL_PREDICTOR_REFERENCES
+# from developers.models import TEMPORAL_PREDICTOR_FORMULAS
 
 class Command(BaseCommand):
     help = """
-    python manage.py append_dev_profiles [gh_id_minimum]
+    python manage.py write_statistics
 
-    For each developer in the database where github_id > [gh_id_minimum],
-    makes a call to Github API for developer's profile data and appends
-    or replaces existing profile.
+    Update or create TemporalPredictors by looping through events
+    and applying the appropriate aggregation formulas (e.g. count by
+    event by month).
     """
 
-    def __init__(self):
-        # self.calls_per_minute = 30
-        self.domain = 'https://api.github.com/users'
-        self.query = 'client_id={}&client_secret={}'.format(
-            settings.GITHUB_CLIENT_ID, settings.GITHUB_CLIENT_SECRET
+    def month_year_iter(self, start_month, start_year, end_month, end_year):
+        # http://stackoverflow.com/questions/5734438/how-to-create-a-month-iterator
+        periods = []
+        ym_start = 12 * start_year + start_month - 1
+        ym_end = 12 * end_year + end_month
+        for ym in range(ym_start, ym_end):
+            y, m = divmod(ym, 12)
+            periods.append((y, m + 1))
+        return periods
+
+    def count_events_by_month(self, actor, gh_type, period):
+        count = Event.objects.filter(
+            actor=actor,
+            gh_type=gh_type,
+            gh_created_at__year=period[0],
+            gh_created_at__month=period[1]
+        ).count()
+
+        TemporalPredictor.objects.update_or_create(
+            reference=gh_type,
+            formula='Count',
+            developer=actor,
+            year=period[0],
+            month=period[1],
+            defaults={'statistic': count}
         )
 
-    def add_arguments(self, parser):
-        parser.add_argument('gh_id_min', nargs='+')
-
-    def get_dev_profile(self, login):
-        # TODO: add pause before rate-limiting
-
-        url = '{}/{}?{}'.format(self.domain, login, self.query)
-        r = requests.get(url).json()
-
-        try:
-            dev = Developer.objects.get(login=r['login'])
-            dev.name = r['name']
-            dev.company = r['company']
-            dev.blog = r['blog']
-            dev.location = r['location']
-            dev.email = r['email']
-            dev.hireable = r['hireable']
-            dev.bio = r['bio']
-            dev.public_repos = r['public_repos']
-            dev.public_gists = r['public_gists']
-            dev.followers = r['followers']
-            dev.following = r['following']
-            dev.github_created_at = r['created_at']
-            dev.github_updated_at = r['created_at']
-            dev.save()
-
-        except ObjectDoesNotExist:
-            print "Could not find or update developer with login {}".format(
-                dev['login'])
+        return count
 
     def handle(self, *args, **options):
-        devs = Developer.objects.filter(gh_id__gt=options['gh_id_min'][0])
-        dev_ct = len(devs)
+        # TODO: rather than triple for loop,
+        # this could done by a SINGLE sql query
+        # but that's beyond my level of sql skill
 
-        for i, dev in enumerate(devs):
-            self.get_dev_profile(dev.login)
-            print ('Wrote developer with login '
-                   '{}, {} of {}, {:.2f}% complete.'.format(
-                       dev.login, i, dev_ct, float(i) / float(dev_ct) * 100))
+        event_max = Event.objects.all().aggregate(Max(
+            'gh_created_at')).values()[0]
+        event_min = Event.objects.all().aggregate(Min(
+            'gh_created_at')).values()[0]
+
+        periods = self.month_year_iter(
+            event_min.month,
+            event_min.year,
+            event_max.month,
+            event_max.year
+        )
+
+        devs = Developer.objects.all()
+
+        for dev in devs[:500]:
+            for gh_type in TEMPORAL_PREDICTOR_REFERENCES:
+                for period in periods:
+                    c = self.count_events_by_month(dev, gh_type[0], period)
+                    if c != 0:
+                        print '{} {} for {} in {}-{}'.format(
+                            c, gh_type[0], dev, period[0], period[1])
