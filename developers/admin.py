@@ -27,4 +27,6 @@ admin.site.register(Event, EventAdmin)
 class TemporalPredictorAdmin(admin.ModelAdmin):
     list_display = standard_fields(TemporalPredictor)
     list_display_links = list_display
+    list_filter = ['reference', 'formula', 'statistic', 'year', 'month']
+    search_fields = list_display
 admin.site.register(TemporalPredictor, TemporalPredictorAdmin)

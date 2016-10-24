@@ -11,11 +11,13 @@ import requests
 
 class Command(BaseCommand):
     help = """
-    python manage.py append_dev_profiles [gh_id_minimum]
+    python manage.py append_profiles_by_id_range [gh_id_min] [gh_id_max]
 
-    For each developer in the database where github_id > [gh_id_minimum],
-    makes a call to Github API for developer's profile data and appends
-    or replaces existing profile.
+    For each developer in the DB where [gh_id_min] < github_id =< [gh_id_max],
+    makes a call to Github API for developer's profile data and updates
+    data in existing profile (which may or may not be blank).
+
+    This command can be run simultaneously on different id_ranges.
     """
 
     def __init__(self):
@@ -27,6 +29,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('gh_id_min', nargs='+')
+        parser.add_argument('gh_id_max', nargs='+')
 
     def get_dev_profile(self, login):
 
@@ -61,7 +64,10 @@ class Command(BaseCommand):
                 dev['login'])
 
     def handle(self, *args, **options):
-        devs = Developer.objects.filter(gh_id__gt=options['gh_id_min'][0])
+        devs = Developer.objects.filter(
+            gh_id__gt=options['gh_id_min'][0],
+            gh_id__lte=options['gh_id_max'][0],
+        )
         dev_ct = len(devs)
 
         for i, dev in enumerate(devs):

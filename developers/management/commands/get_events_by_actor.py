@@ -38,11 +38,15 @@ class Command(BaseCommand):
             raise ValueError("Cannot covert {} to a bool".format(s))
 
     def handle(self, *args, **options):
-        logins = list(Developer.objects.values_list('login', flat=True))
         credentials = GoogleCredentials.get_application_default()
         bigquery_service = build('bigquery', 'v2', credentials=credentials)
 
         query_request = bigquery_service.jobs()
+
+        # TODO: currently no limit on size of SQL query
+        # Consider running a query for each 10K developers?
+        # Consider running queries by month instead of for all 2014
+        logins = list(Developer.objects.values_list('login', flat=True))
         query_data = {
             'query': (
                 'SELECT * '

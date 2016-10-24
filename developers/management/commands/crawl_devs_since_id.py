@@ -18,7 +18,6 @@ class Command(BaseCommand):
     """
 
     def __init__(self):
-        # self.calls_per_minute = 30
         self.per_page = 100
 
     def add_arguments(self, parser):

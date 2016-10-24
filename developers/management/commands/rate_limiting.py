@@ -1,3 +1,6 @@
+# Module for pausing script execution to allow
+# Github rate limit to reset before next API call is made.
+
 from datetime import datetime
 import time
 
