@@ -45,3 +45,39 @@ class Event(models.Model):
     def __unicode__(self):
         return '{} by {} on {}'.format(
             self.gh_type, self.actor, self.gh_created_at)
+
+TEMPORAL_PREDICTOR_REFERENCES = (
+    ('CommitCommentEvent', 'CommitCommentEvent'),
+    ('CreateEvent', 'CreateEvent'),
+    ('DeleteEvent', 'DeleteEvent'),
+    ('ForkEvent', 'ForkEvent'),
+    ('GistEvent', 'GistEvent'),
+    ('GollumEvent', 'GollumEvent'),
+    ('IssueCommentEvent', 'IssueCommentEvent'),
+    ('IssuesEvent', 'IssuesEvent'),
+    ('MemberEvent', 'MemberEvent'),
+    ('PublicEvent', 'PublicEvent'),
+    ('PullRequestEvent', 'PullRequestEvent'),
+    ('PullRequestReviewCommentEvent', 'PullRequestReviewCommentEvent'),
+    ('PushEvent', 'PushEvent'),
+    ('ReleaseEvent', 'ReleaseEvent'),
+    ('WatchEvent', 'WatchEvent')
+)
+
+TEMPORAL_PREDICTOR_FORMULAS = (
+    ('Count', 'Count'),
+    ('Sum', 'Sum'),
+)
+
+# Example: ForkEvent_count_2014_01
+class TemporalPredictor(models.Model):
+    reference = models.CharField(max_length=200, blank=False, null=False,
+                                 choices=TEMPORAL_PREDICTOR_REFERENCES)
+    formula = models.CharField(max_length=200, blank=False, null=False,
+                               choices=TEMPORAL_PREDICTOR_FORMULAS)
+    developer = models.ForeignKey('Developer', blank=False, null=False)
+    statistic = models.FloatField(blank=False, null=False)
+    period = models.DateTimeField(blank=False, null=False)
+
+    def __unicode__(self):
+        return '{}_{}_{}'.format(self.reference, self.formula, self.period)
