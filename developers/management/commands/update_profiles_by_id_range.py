@@ -36,11 +36,6 @@ class Command(BaseCommand):
         url = '{}/{}?{}'.format(self.domain, login, self.query)
         response = requests.get(url)
 
-        pause_if_rate_limit_reached(
-            response.headers['X-RateLimit-Remaining'],
-            response.headers['X-RateLimit-Reset']
-        )
-
         r = response.json()
         try:
             dev = Developer.objects.get(login=r['login'])
@@ -63,6 +58,15 @@ class Command(BaseCommand):
             print "Could not find or update developer with login {}".format(
                 dev['login'])
 
+        # If at rate limit, pause execution to allow limit to reset before next
+        # recursive call. Should guarantee next recursive call has proper
+        # response.json().
+        # TODO: add proper error-checking.
+        pause_if_rate_limit_reached(
+            response.headers['X-RateLimit-Remaining'],
+            response.headers['X-RateLimit-Reset']
+        )
+
     def handle(self, *args, **options):
         devs = Developer.objects.filter(
             gh_id__gt=options['gh_id_min'][0],
@@ -71,7 +75,12 @@ class Command(BaseCommand):
         dev_ct = len(devs)
 
         for i, dev in enumerate(devs):
-            self.get_dev_profile(dev.login)
-            print ('Wrote developer with login '
-                   '{}, {} of {}, {:.2f}% complete.'.format(
-                       dev.login, i, dev_ct, float(i) / float(dev_ct) * 100))
+            if dev.gh_created_at is None:
+                self.get_dev_profile(dev.login)
+                print ('Wrote developer with login {}, {} of {},'
+                       ' {:.2f}% complete.'.format(
+                           dev.login,
+                           i,
+                           dev_ct,
+                           float(i) / float(dev_ct) * 100)
+                       )

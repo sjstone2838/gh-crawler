@@ -30,11 +30,6 @@ class Command(BaseCommand):
         response = requests.get(url)
         # TODO: add error-handling
 
-        pause_if_rate_limit_reached(
-            response.headers['X-RateLimit-Remaining'],
-            response.headers['X-RateLimit-Reset']
-        )
-
         for dev in response.json():
             if not Developer.objects.filter(login=dev['login']).exists():
                 Developer.objects.create(
@@ -50,6 +45,15 @@ class Command(BaseCommand):
         # Go to next page if n < limit and there is another page
         if int(n * self.per_page) < int(limit) and 'next' in response.links:
             self.get_devs_by_page(response.links['next']['url'], limit, n + 1)
+
+        # If at rate limit, pause execution to allow limit to reset before next
+        # recursive call. Should guarantee next recursive call has proper
+        # response.json().
+        # TODO: add proper error-checking.
+        pause_if_rate_limit_reached(
+            response.headers['X-RateLimit-Remaining'],
+            response.headers['X-RateLimit-Reset']
+        )
 
     def handle(self, *args, **options):
         domain = 'https://api.github.com/users'
