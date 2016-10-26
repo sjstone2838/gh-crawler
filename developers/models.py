@@ -120,12 +120,13 @@ class Repo(models.Model):
 class PullRequest(models.Model):
     event = models.OneToOneField('Event', blank=False, null=False, unique=True)
     action_initiator = models.ForeignKey('Developer', blank=False, null=False)
-    url = models.CharField(max_length=500, blank=False,
-                           null=False, unique=True)
+    url = models.CharField(max_length=500, blank=False, null=False)
     action = models.CharField(max_length=200, blank=False, null=False)
-    pr_submitter = models.CharField(max_length=500, blank=False, null=False)
-    self_referential = models.BooleanField(blank=False, null=False)
-    merged = models.BooleanField(blank=False, null=False)
+    opener = models.CharField(max_length=500, blank=False, null=False)
+    repo_still_exists = models.NullBooleanField(blank=True, null=True)
+    merged = models.NullBooleanField(blank=True, null=True)
+    closer = models.CharField(max_length=500, blank=True, null=True)
+    self_referential = models.NullBooleanField(blank=True, null=True)
 
     def __unicode__(self):
         return self.url

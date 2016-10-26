@@ -43,6 +43,6 @@ admin.site.register(Repo, RepoAdmin)
 class PullRequestAdmin(admin.ModelAdmin):
     list_display = standard_fields(PullRequest)
     list_display_links = list_display
-    list_filter = ['action', 'merged', 'self_referential']
+    list_filter = ['action', 'repo_still_exists', 'merged', 'self_referential']
     search_fields = list_display
 admin.site.register(PullRequest, PullRequestAdmin)
