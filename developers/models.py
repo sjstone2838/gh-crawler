@@ -116,3 +116,16 @@ class Repo(models.Model):
 
     def __unicode__(self):
         return self.full_name
+
+class PullRequest(models.Model):
+    event = models.OneToOneField('Event', blank=False, null=False, unique=True)
+    action_initiator = models.ForeignKey('Developer', blank=False, null=False)
+    url = models.CharField(max_length=500, blank=False,
+                           null=False, unique=True)
+    action = models.CharField(max_length=200, blank=False, null=False)
+    pr_submitter = models.CharField(max_length=500, blank=False, null=False)
+    self_referential = models.BooleanField(blank=False, null=False)
+    merged = models.BooleanField(blank=False, null=False)
+
+    def __unicode__(self):
+        return self.url

@@ -3,6 +3,7 @@ from .models import Developer
 from .models import Event
 from .models import TemporalPredictor
 from .models import Repo
+from .models import PullRequest
 
 def standard_fields(model):
     fields = []
@@ -38,3 +39,10 @@ class RepoAdmin(admin.ModelAdmin):
     list_filter = ['fork', 'language', 'has_issues', 'has_downloads']
     search_fields = list_display
 admin.site.register(Repo, RepoAdmin)
+
+class PullRequestAdmin(admin.ModelAdmin):
+    list_display = standard_fields(PullRequest)
+    list_display_links = list_display
+    list_filter = ['action', 'merged', 'self_referential']
+    search_fields = list_display
+admin.site.register(PullRequest, PullRequestAdmin)
