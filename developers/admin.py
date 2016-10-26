@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import Developer
 from .models import Event
 from .models import TemporalPredictor
+from .models import Repo
 
 def standard_fields(model):
     fields = []
@@ -30,3 +31,10 @@ class TemporalPredictorAdmin(admin.ModelAdmin):
     list_filter = ['reference', 'formula', 'statistic', 'year', 'month']
     search_fields = list_display
 admin.site.register(TemporalPredictor, TemporalPredictorAdmin)
+
+class RepoAdmin(admin.ModelAdmin):
+    list_display = standard_fields(Repo)
+    list_display_links = list_display
+    list_filter = ['fork', 'language', 'has_issues', 'has_downloads']
+    search_fields = list_display
+admin.site.register(Repo, RepoAdmin)
