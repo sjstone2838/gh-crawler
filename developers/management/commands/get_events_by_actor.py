@@ -6,6 +6,7 @@ from developers.models import Event
 
 import datetime
 from math import pow
+from math import ceil
 import pytz
 # import pprint as pp
 
@@ -21,7 +22,7 @@ class Command(BaseCommand):
     where actor.login is included in Developer.login and save each
     event to database, with primary_key mapped to developer.
 
-    Example dataset_name: githubarchive_2011.201401_copy
+    Example dataset_name: githubarchive_2011.2014_copy
     """
 
     def __init__(self):
@@ -97,25 +98,21 @@ class Command(BaseCommand):
                     other=event['f'][18]['v']
                 )
 
-                print 'Created {}, event {} of {} on results page {}'.format(
-                    e, count, len(events), page_number)
+                # print 'Created {}, event {} of {} on results page {}'.format(
+                # e, count, len(events), page_number)
 
             except ObjectDoesNotExist:
                 print "Could not find or update developer: {}".format(
                     dev['login'])
 
-    def handle(self, *args, **options):
-        credentials = GoogleCredentials.get_application_default()
-        bigquery_service = build('bigquery', 'v2', credentials=credentials)
-
-        query_request = bigquery_service.jobs()
-
-        devs = Developer.objects.filter(
-            pk__gt=options['pk_min'][0],
-            pk__lte=options['pk_max'][0]
+    def get_events_by_actor_batch(self, dev_pk_min,
+                                  dev_pk_max, dataset_name, bigquery_service):
+        actor_batch = Developer.objects.filter(
+            pk__gt=dev_pk_min,
+            pk__lte=dev_pk_max
         )
 
-        logins = list(devs.values_list('login', flat=True))
+        logins = list(actor_batch.values_list('login', flat=True))
 
         query_data = {
             'query': (
@@ -124,7 +121,7 @@ class Command(BaseCommand):
                 'WHERE actor.login '
                 'IN ("{}")'.format(
                     self.project_id,
-                    options['dataset_name'][0],
+                    dataset_name,
                     '", "'.join(logins)
                 )
             ),
@@ -133,11 +130,14 @@ class Command(BaseCommand):
 
         print "Running query on Google BigQuery..."
 
-        query_response = query_request.query(
+        query_response = bigquery_service.jobs().query(
             projectId='gh-crawler',
             body=query_data
         ).execute()
-        # print query_response
+
+        print "Query returned {} total events.".format(
+            query_response['totalRows']
+        )
 
         page_number = 1
         # TODO: subsequent lines are repetitive
@@ -164,3 +164,33 @@ class Command(BaseCommand):
             # TODO: subsequent lines are repetitive
             self.write_events_to_db(query_response['rows'], page_number)
             page_token = query_response.get('pageToken', None)
+
+    def handle(self, *args, **options):
+        credentials = GoogleCredentials.get_application_default()
+        bigquery_service = build('bigquery', 'v2', credentials=credentials)
+        # query_request = bigquery_service.jobs()
+
+        dev_pk_min = int(options['pk_min'][0])
+        dev_pk_max = int(options['pk_max'][0])
+
+        # Assumes actors have continuous pk's - no gaps
+        total_dev_count = dev_pk_max - dev_pk_min
+        batches = 1
+        batch_size = min(10000, ceil(float(total_dev_count) / batches))
+
+        for i in range(0, batches):
+            batch_pk_min = i * batch_size + dev_pk_min
+            batch_pk_max = (i + 1) * batch_size + dev_pk_min
+
+            print "Running batch {}: pks {}-{}".format(
+                i,
+                batch_pk_min,
+                batch_pk_max
+            )
+
+            self.get_events_by_actor_batch(
+                batch_pk_min,
+                batch_pk_max,
+                options['dataset_name'][0],
+                bigquery_service
+            )
