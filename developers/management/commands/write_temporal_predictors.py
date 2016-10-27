@@ -11,11 +11,16 @@ from developers.models import TEMPORAL_PREDICTOR_REFERENCES
 
 class Command(BaseCommand):
     help = """
-    python manage.py write_statistics
+    python manage.py write_temporal_predictors
 
     Update or create TemporalPredictors by looping through events
     and applying the appropriate aggregation formulas (e.g. count by
     event by month).
+
+    In addition to the standard events logged in the GitHub public timeline,
+    this will classify Pull Requests into Quality Opened PRs (where the PR
+    was merged by someone else) and Quality Closed PRs (where the actor
+    closed a PR opened by someone else) - these indicate collaborative work.
     """
 
     def month_year_iter(self, start_month, start_year, end_month, end_year):

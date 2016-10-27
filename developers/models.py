@@ -21,6 +21,11 @@ class Developer(models.Model):
     following = models.IntegerField(blank=True, null=True)
     gh_created_at = models.DateTimeField(blank=True, null=True)
     gh_updated_at = models.DateTimeField(blank=True, null=True)
+    original_repos = models.IntegerField(blank=True, null=True, default=None)
+    total_forks = models.IntegerField(blank=True, null=True, default=None)
+    forks_per_repo = models.FloatField(blank=True, null=True, default=None)
+    total_stars = models.IntegerField(blank=True, null=True, default=None)
+    stars_per_repo = models.FloatField(blank=True, null=True, default=None)
 
     def __unicode__(self):
         return self.login
