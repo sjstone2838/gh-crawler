@@ -61,7 +61,9 @@ TEMPORAL_PREDICTOR_REFERENCES = (
     ('PullRequestReviewCommentEvent', 'PullRequestReviewCommentEvent'),
     ('PushEvent', 'PushEvent'),
     ('ReleaseEvent', 'ReleaseEvent'),
-    ('WatchEvent', 'WatchEvent')
+    ('WatchEvent', 'WatchEvent'),
+    ('QualityPROpened', 'QualityPROpened'),
+    ('QualityPRClosed', 'QualityPRClosed')
 )
 
 TEMPORAL_PREDICTOR_FORMULAS = (

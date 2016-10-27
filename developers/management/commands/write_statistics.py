@@ -2,9 +2,11 @@ from django.core.management.base import BaseCommand
 from django.db.models import Max, Min
 
 from developers.models import Event
+from developers.models import PullRequest
 from developers.models import Developer
 from developers.models import TemporalPredictor
 from developers.models import TEMPORAL_PREDICTOR_REFERENCES
+# 'Count' is the only formula used here
 # from developers.models import TEMPORAL_PREDICTOR_FORMULAS
 
 class Command(BaseCommand):
@@ -26,24 +28,58 @@ class Command(BaseCommand):
             periods.append((y, m + 1))
         return periods
 
-    def count_events_by_month(self, actor, gh_type, period):
-        count = Event.objects.filter(
-            actor=actor,
-            gh_type=gh_type,
-            gh_created_at__year=period[0],
-            gh_created_at__month=period[1]
-        ).count()
-
+    def create_or_update_temporal_predictor(self, gh_type, formula,
+                                            developer, year, month, statistic):
         TemporalPredictor.objects.update_or_create(
-            reference=gh_type,
-            formula='Count',
-            developer=actor,
-            year=period[0],
-            month=period[1],
-            defaults={'statistic': count}
+            defaults={
+                'reference': gh_type,
+                'formula': formula,
+                'developer': developer,
+                'year': year,
+                'month': month
+            },
+            statistic=statistic
         )
 
-        return count
+    def count_events_by_month(self, actor, gh_type, period):
+        if gh_type == 'QualityPROpened':
+            statistic = PullRequest.objects.filter(
+                action_initiator=actor,
+                action__in=['opened', 'reopened'],
+                merged=True,
+                self_referential=False,
+                gh_created_at__year=period[0],
+                gh_created_at__month=period[1]
+            ).count()
+
+            self.create_or_update_temporal_predictor(
+                gh_type, 'Count', actor, period[0], period[1], statistic)
+
+        elif gh_type == 'QualityPRClosed':
+            statistic = PullRequest.objects.filter(
+                action_initiator=actor,
+                action__in=['closed'],
+                merged=True,
+                self_referential=False,
+                gh_created_at__year=period[0],
+                gh_created_at__month=period[1]
+            ).count()
+
+            self.create_or_update_temporal_predictor(
+                gh_type, 'Count', actor, period[0], period[1], statistic)
+
+        else:
+            statistic = Event.objects.filter(
+                actor=actor,
+                gh_type=gh_type,
+                gh_created_at__year=period[0],
+                gh_created_at__month=period[1]
+            ).count()
+
+            self.create_or_update_temporal_predictor(
+                gh_type, 'Count', actor, period[0], period[1], statistic)
+
+        return statistic
 
     def handle(self, *args, **options):
         # TODO: rather than triple for loop,

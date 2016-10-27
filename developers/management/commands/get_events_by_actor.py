@@ -81,7 +81,7 @@ class Command(BaseCommand):
                 18'other',
                 """
 
-                e = Event.objects.create(
+                Event.objects.create(
                     actor=dev,
                     gh_type=event['f'][0]['v'],
                     public=self.str_to_bool(event['f'][1]['v']),
@@ -98,8 +98,9 @@ class Command(BaseCommand):
                     other=event['f'][18]['v']
                 )
 
-                # print 'Created {}, event {} of {} on results page {}'.format(
-                # e, count, len(events), page_number)
+                print '{}. Created {} for {}'.format(
+                    count, event['f'][0]['v'], dev
+                )
 
             except ObjectDoesNotExist:
                 print "Could not find or update developer: {}".format(

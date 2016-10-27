@@ -44,5 +44,5 @@ class PullRequestAdmin(admin.ModelAdmin):
     list_display = standard_fields(PullRequest)
     list_display_links = list_display
     list_filter = ['action', 'repo_still_exists', 'merged', 'self_referential']
-    search_fields = list_display
+    search_fields = ['action_initiator']
 admin.site.register(PullRequest, PullRequestAdmin)

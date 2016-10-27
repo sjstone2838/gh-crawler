@@ -7,6 +7,7 @@ from developers.models import PullRequest
 
 import json
 import requests
+# from pprint import pprint
 
 from rate_limiting import pause_if_rate_limit_reached
 
@@ -85,7 +86,9 @@ class Command(BaseCommand):
             body = response.json()
             merged = body['merged']
             if merged:
-                closer = body['merged_by']['login']
+                closer = body.get('merged_by', None)
+                if closer is not None:
+                    closer = closer['login']
                 self_ref = (closer == initiator.login)
             else:
                 closer = None
@@ -145,12 +148,11 @@ class Command(BaseCommand):
             self_referential=self_ref
         )[0]
 
-        print '{}: initiator={}, action={}, self_ref={}, merged={}'.format(
+        print '{}: initiator={}, action={}, event_pk={}'.format(
             new_pr,
             new_pr.action_initiator,
             new_pr.action,
-            new_pr.self_referential,
-            new_pr.merged
+            event.pk
         )
 
     def handle(self, *arg, **options):
@@ -162,10 +164,9 @@ class Command(BaseCommand):
         dev_count = len(devs)
 
         for i, dev in enumerate(devs):
-            print 'Working on {}, {} of {}, {}% complete'.format(
+            print 'Working on {}, pk-{}, {}% complete'.format(
                 dev,
-                i,
-                dev_count,
+                dev.pk,
                 float(i) / float(dev_count) * 100
             )
 
