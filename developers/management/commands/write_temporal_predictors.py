@@ -11,17 +11,21 @@ from developers.models import TEMPORAL_PREDICTOR_REFERENCES
 
 class Command(BaseCommand):
     help = """
-    python manage.py write_temporal_predictors
+    python manage.py write_temporal_predictors [pk_min] [pk_max]
 
-    Update or create TemporalPredictors by looping through events
-    and applying the appropriate aggregation formulas (e.g. count by
-    event by month).
+    Update or create TemporalPredictors for devs in range(pk_min, pk_max)
+    by looping through events and applying the appropriate aggregation formulas
+    (e.g. count by event by month).
 
     In addition to the standard events logged in the GitHub public timeline,
     this will classify Pull Requests into Quality Opened PRs (where the PR
     was merged by someone else) and Quality Closed PRs (where the actor
     closed a PR opened by someone else) - these indicate collaborative work.
     """
+
+    def add_arguments(self, parser):
+        parser.add_argument('pk_min', nargs='+')
+        parser.add_argument('pk_max', nargs='+')
 
     def month_year_iter(self, start_month, start_year, end_month, end_year):
         # http://stackoverflow.com/questions/5734438/how-to-create-a-month-iterator
@@ -103,9 +107,12 @@ class Command(BaseCommand):
             event_max.year
         )
 
-        devs = Developer.objects.all()
+        devs = Developer.objects.filter(
+            pk__gte=options['pk_min'][0],
+            pk__lt=options['pk_max'][0]
+        )
 
-        for dev in devs[:500]:
+        for dev in devs:
             for gh_type in TEMPORAL_PREDICTOR_REFERENCES:
                 for period in periods:
                     c = self.count_events_by_month(dev, gh_type[0], period)
