@@ -39,16 +39,22 @@ class Command(BaseCommand):
 
     def create_or_update_temporal_predictor(self, gh_type, formula,
                                             developer, year, month, statistic):
-        TemporalPredictor.objects.update_or_create(
-            defaults={
-                'reference': gh_type,
-                'formula': formula,
-                'developer': developer,
-                'year': year,
-                'month': month
-            },
-            statistic=statistic
-        )
+
+        # Only write TemporalPredictors where statistic is non-zero
+        if statistic != 0:
+            # The update_or_create method tries to fetch an object from DB
+            # based on the given kwargs. If match is found, it updates the
+            # fields passed in the defaults dictionary.
+            TemporalPredictor.objects.update_or_create(
+                reference=gh_type,
+                formula=formula,
+                developer=developer,
+                year=year,
+                month=month,
+                defaults={
+                    'statistic': statistic
+                }
+            )
 
     def count_events_by_month(self, actor, gh_type, period):
         if gh_type == 'QualityPROpened':
@@ -57,8 +63,8 @@ class Command(BaseCommand):
                 action__in=['opened', 'reopened'],
                 merged=True,
                 self_referential=False,
-                gh_created_at__year=period[0],
-                gh_created_at__month=period[1]
+                event__gh_created_at__year=period[0],
+                event__gh_created_at__month=period[1]
             ).count()
 
             self.create_or_update_temporal_predictor(
@@ -70,8 +76,8 @@ class Command(BaseCommand):
                 action__in=['closed'],
                 merged=True,
                 self_referential=False,
-                gh_created_at__year=period[0],
-                gh_created_at__month=period[1]
+                event__gh_created_at__year=period[0],
+                event__gh_created_at__month=period[1]
             ).count()
 
             self.create_or_update_temporal_predictor(
@@ -114,6 +120,7 @@ class Command(BaseCommand):
 
         for dev in devs:
             for gh_type in TEMPORAL_PREDICTOR_REFERENCES:
+                print 'Writing {} for {} (pk={}).'.format(gh_type, dev, dev.pk)
                 for period in periods:
                     c = self.count_events_by_month(dev, gh_type[0], period)
                     if c != 0:

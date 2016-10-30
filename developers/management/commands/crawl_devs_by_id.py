@@ -11,7 +11,7 @@ from rate_limiting import pause_if_rate_limit_reached
 
 class Command(BaseCommand):
     help = """
-    python manage.py crawl_devs_since_id [starting_id] [limit]
+    python manage.py crawl_devs_by_id [starting_id] [limit]
 
     Writes developer data to database by calling github API.
     Approximate first new user on Jan 1 2014 has id 6296000.

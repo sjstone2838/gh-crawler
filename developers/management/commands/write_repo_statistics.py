@@ -25,14 +25,29 @@ class Command(BaseCommand):
             pk__lt=options['pk_max'][0]
         )
         for dev in devs:
+            print 'Working on pk={} ({})'.format(dev.pk, dev)
             repos = Repo.objects.filter(owner=dev)
 
-            dev.original_repo_ct = repos.filter(fork=False).count()
+            original_repos = repos.filter(fork=False).count()
 
-            dev.total_fork_ct = repos.aggregate(Sum('forks'))
-            dev.forks_per_repo = float(dev.total_fork_ct) / len(repos)
+            total_forks = repos.aggregate(
+                Sum('forks_count')).values()[0]
+            if total_forks is None:
+                forks_per_repo = None
+            else:
+                forks_per_repo = float(total_forks) / len(repos)
 
-            dev.total_star_ct = repos.aggregate(Sum('stars'))
-            dev.stars_per_repo = float(dev.total_star_ct) / len(repos)
+            total_stars = repos.aggregate(
+                Sum('stargazers_count')).values()[0]
+            if total_stars is None:
+                stars_per_repo = None
+            else:
+                stars_per_repo = float(total_stars) / len(repos)
+
+            dev.original_repos = original_repos
+            dev.total_forks = total_forks
+            dev.forks_per_repo = forks_per_repo
+            dev.total_stars = total_stars
+            dev.stars_per_repo = stars_per_repo
 
             dev.save()
